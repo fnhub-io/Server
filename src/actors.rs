@@ -18,7 +18,7 @@ impl Actor for WasmEngineActor {
 impl Handler<ExecuteFn> for WasmEngineActor {
     type Result = Result<String, std::io::Error>;
 
-    fn handle(&mut self, msg: ExecuteFn, ctx: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: ExecuteFn, _ctx: &mut Context<Self>) -> Self::Result {
         println!("Execution command received for fn {}", msg.name);
         let output = run_wasm_function(&msg.name);
         Ok(output)

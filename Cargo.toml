@@ -1,11 +1,18 @@
 [package]
-name = "server"
+name = "fnhub"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 actix = "0.13.5"
 actix-web = "4.9.0"
-wasmedge-sdk = "0.14.0"
 wasmtime = "29.0.1"
 wasmtime-wasi = "29.0.1"
+tokio = { version = "1.36.0", features = ["full"] }
+lazy_static = "1.4.0"
+
+# AWS SDK for S3 (works with MinIO)
+aws-sdk-s3 = "1.20.0"
+aws-config = "1.1.7"
+aws-types = "1.1.7"
+http = "0.2"  # Add this line
