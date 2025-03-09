@@ -8,6 +8,7 @@ actix = "0.13.5"
 actix-multipart = "0.7.2"
 actix-web = "4.9.0"
 futures = "0.3.31"
-wasmedge-sdk = "0.14.0"
+actix-cors = "0.6"
+
 wasmtime = "29.0.1"
 wasmtime-wasi = "29.0.1"

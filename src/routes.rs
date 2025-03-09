@@ -17,12 +17,15 @@ async fn test() -> impl Responder {
 
 #[post("/execute")]
 async fn execute_fn(
-    fn_name: String,
+    body: web::Bytes,  // Read raw bytes from request body
     wasm_actor: web::Data<Addr<WasmEngineActor>>,
 ) -> impl Responder {
+    let fn_name = String::from_utf8(body.to_vec()).unwrap_or_default(); // Convert bytes to string
     let addr = format!("./src/savedWasmFunctions/{}", fn_name);
     let path = Path::new(&addr);
-    dbg!(path);
+    
+    dbg!(fn_name.clone(), path);
+    
     if path.exists() {
         let output = wasm_actor.send(ExecuteFn { name: fn_name }).await.unwrap();
         match output {
@@ -70,7 +73,9 @@ async fn upload_fn(mut payload: Multipart) -> impl Responder {
     }
     
     // Save the file
-    let path = Path::new("./src/savedWasmFunctions").join(&fn_name);
+   // Ensure the file is saved with a .wasm extension
+let path = Path::new("./src/savedWasmFunctions").join(format!("{}", fn_name));
+
     
     // Create directory if it doesn't exist
     if let Some(parent) = path.parent() {
