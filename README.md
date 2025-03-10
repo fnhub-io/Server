@@ -31,6 +31,16 @@ To set up and run the backend, follow these steps:
    ```sh
    curl -X POST "http://localhost:8080/execute" -H "Content-Type: text/plain" -d "sample.wasm"
    ```
+
+   ```sh
+   curl -X POST http://localhost:8080/execute \
+        -H "Content-Type: application/json" \
+        -d '{
+              "fn_name": "add.wasm",
+              "params": ["1", "2"]
+            }'
+   ```
+
 6. **upload fn:**
 
    A sample WebAssembly module (`sample.wasm`) is available in the `savedWasmFunction` folder. You can test it by running:
@@ -39,4 +49,4 @@ To set up and run the backend, follow these steps:
    curl -X POST http://localhost:8080/upload   -H "Content-Type: multipart/form-data"   -F "fn_name=sample2.wasm"   -F "wasm_file=@/home/arjun/Desktop/mini-project/backend/server/src/savedWasmFunctions/sample.wasm"
    ```
 
-Thank you! 
+Thank you!

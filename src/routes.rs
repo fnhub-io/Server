@@ -1,10 +1,15 @@
 use crate::actors::{ExecuteFn, WasmEngineActor};
-use crate::wasmFunction::run_wasm_function;
 use actix::Addr;
-use actix_web::{get, post, web, HttpResponse, Responder};
-use std::path::Path;
 use actix_multipart::Multipart;
+use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::{StreamExt, TryStreamExt};
+use std::path::Path;
+
+#[derive(serde::Deserialize)]
+struct ExecutePayload {
+    fn_name: String,
+    params: Vec<String>,
+}
 
 #[get("/")]
 async fn test() -> impl Responder {
@@ -17,17 +22,22 @@ async fn test() -> impl Responder {
 
 #[post("/execute")]
 async fn execute_fn(
-    body: web::Bytes,  // Read raw bytes from request body
+    web::Json(payload): web::Json<ExecutePayload>,
     wasm_actor: web::Data<Addr<WasmEngineActor>>,
 ) -> impl Responder {
-    let fn_name = String::from_utf8(body.to_vec()).unwrap_or_default(); // Convert bytes to string
-    let addr = format!("./src/savedWasmFunctions/{}", fn_name);
+    let addr = format!("./src/savedWasmFunctions/{}", payload.fn_name);
     let path = Path::new(&addr);
     
-    dbg!(fn_name.clone(), path);
+    dbg!(payload.fn_name.clone(), path);
     
     if path.exists() {
-        let output = wasm_actor.send(ExecuteFn { name: fn_name }).await.unwrap();
+        let output = wasm_actor
+            .send(ExecuteFn {
+                name: payload.fn_name,
+                params: payload.params,
+            })
+            .await
+            .unwrap();
         match output {
             Ok(content) => HttpResponse::Ok().body(content),
             Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
@@ -40,15 +50,17 @@ async fn execute_fn(
 #[post("/upload")]
 async fn upload_fn(mut payload: Multipart) -> impl Responder {
     // Process multipart form data
+    dbg!("Upload being called");
     let mut fn_name = String::new();
     let mut wasm_data = Vec::new();
-    
+
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_disposition = field.content_disposition();
-        let field_name = content_disposition.as_ref()
+        let field_name = content_disposition
+            .as_ref()
             .and_then(|cd| cd.get_name())
             .unwrap_or("");
-        
+
         if field_name == "fn_name" {
             // Process function name field
             while let Some(chunk) = field.next().await {
@@ -67,16 +79,14 @@ async fn upload_fn(mut payload: Multipart) -> impl Responder {
             }
         }
     }
-    
+
     if fn_name.is_empty() || wasm_data.is_empty() {
         return HttpResponse::BadRequest().body("Missing function name or empty WASM file");
     }
-    
-    // Save the file
-   // Ensure the file is saved with a .wasm extension
-let path = Path::new("./src/savedWasmFunctions").join(format!("{}", fn_name));
 
-    
+    // Save the file
+    let path = Path::new("./src/savedWasmFunctions").join(&fn_name);
+
     // Create directory if it doesn't exist
     if let Some(parent) = path.parent() {
         if let Err(e) = std::fs::create_dir_all(parent) {
@@ -84,12 +94,10 @@ let path = Path::new("./src/savedWasmFunctions").join(format!("{}", fn_name));
                 .body(format!("Failed to create directory: {}", e));
         }
     }
-    
+
     // Write the file
     match std::fs::write(&path, &wasm_data) {
-        Ok(_) => HttpResponse::Ok()
-            .body(format!("Function '{}' uploaded successfully", fn_name)),
-        Err(e) => HttpResponse::InternalServerError()
-            .body(format!("Failed to write file: {}", e)),
+        Ok(_) => HttpResponse::Ok().body(format!("Function '{}' uploaded successfully", fn_name)),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to write file: {}", e)),
     }
 }
