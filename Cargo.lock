@@ -2109,6 +2109,7 @@ dependencies = [
  "actix-web",
  "futures",
  "serde",
+ "serde_json",
  "tokio",
  "wasmtime",
  "wasmtime-wasi",

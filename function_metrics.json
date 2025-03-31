@@ -1,0 +1,8 @@
+{
+  "add.wasm": {
+    "name": "add.wasm",
+    "memory_used_bytes": 2077760,
+    "total_execution_time_ms": 248,
+    "execution_count": 10
+  }
+}

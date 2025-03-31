@@ -4,11 +4,9 @@ mod wasmFunction;
 
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer, middleware};
-use actix::prelude::*;
+use actix::Actor;
 use actors::WasmEngineActor;
-use actix::prelude::*;
-use actix_web::{get, post, HttpResponse,  Responder};
-use routes::{execute_fn, test, upload_fn};
+use routes::{execute_fn, test, upload_fn, get_metrics, get_function_metrics};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,6 +21,8 @@ async fn main() -> std::io::Result<()> {
             .service(test)
             .service(execute_fn)
             .service(upload_fn)
+            .service(get_metrics)
+            .service(get_function_metrics)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

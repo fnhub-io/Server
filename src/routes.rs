@@ -1,9 +1,12 @@
 use crate::actors::{ExecuteFn, WasmEngineActor};
+use crate::wasmFunction::FunctionMetrics;
 use actix::Addr;
 use actix_multipart::Multipart;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::{StreamExt, TryStreamExt};
 use std::path::Path;
+use std::fs;
+use std::collections::HashMap;
 
 #[derive(serde::Deserialize)]
 struct ExecutePayload {
@@ -99,5 +102,42 @@ async fn upload_fn(mut payload: Multipart) -> impl Responder {
     match std::fs::write(&path, &wasm_data) {
         Ok(_) => HttpResponse::Ok().body(format!("Function '{}' uploaded successfully", fn_name)),
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed to write file: {}", e)),
+    }
+}
+
+#[get("/metrics")]
+async fn get_metrics() -> impl Responder {
+    let metrics_path = "function_metrics.json";
+    match fs::read_to_string(metrics_path) {
+        Ok(content) => {
+            let metrics: HashMap<String, FunctionMetrics> = 
+                serde_json::from_str(&content).unwrap_or_else(|_| HashMap::new());
+            HttpResponse::Ok().json(metrics)
+        },
+        Err(_) => {
+            // Return empty metrics if file doesn't exist yet
+            HttpResponse::Ok().json(HashMap::<String, FunctionMetrics>::new())
+        }
+    }
+}
+
+#[get("/metrics/{fn_name}")]
+async fn get_function_metrics(path: web::Path<String>) -> impl Responder {
+    let fn_name = path.into_inner();
+    let metrics_path = "function_metrics.json";
+    match fs::read_to_string(metrics_path) {
+        Ok(content) => {
+            let metrics: HashMap<String, FunctionMetrics> = 
+                serde_json::from_str(&content).unwrap_or_else(|_| HashMap::new());
+            
+            if let Some(function_metrics) = metrics.get(&fn_name) {
+                HttpResponse::Ok().json(function_metrics)
+            } else {
+                HttpResponse::NotFound().body(format!("No metrics found for function: {}", fn_name))
+            }
+        },
+        Err(_) => {
+            HttpResponse::NotFound().body("Metrics data not found")
+        }
     }
 }
