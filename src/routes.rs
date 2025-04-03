@@ -4,6 +4,14 @@ use actix::Addr;
 use actix_multipart::Multipart;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::{StreamExt, TryStreamExt};
+
+use minio::s3::{
+    args::{DownloadObjectArgs, PutObjectArgs},
+    client::Client,
+};
+use tokio::fs::remove_file;
+
+use std::{fs::File, path::Path};
 use std::path::Path;
 use std::fs;
 use std::collections::HashMap;
@@ -27,20 +35,38 @@ async fn test() -> impl Responder {
 async fn execute_fn(
     web::Json(payload): web::Json<ExecutePayload>,
     wasm_actor: web::Data<Addr<WasmEngineActor>>,
+    client: web::Data<Client>,
 ) -> impl Responder {
-    let addr = format!("./src/savedWasmFunctions/{}", payload.fn_name);
-    let path = Path::new(&addr);
-    
-    dbg!(payload.fn_name.clone(), path);
-    
+    let bucket_name = "neelabucket";
+    let object_name = &payload.fn_name;
+    let download_path = format!("./src/cache/{}", payload.fn_name);
+    let path = Path::new(&download_path);
+
+    // Download the file from MinIO
+
+    // let args = GetObjectArgs::new(bucket_name, object_name).unwrap();
+    // let get_object = client.get_object(&args).await;
+    let args = DownloadObjectArgs::new(bucket_name, object_name, download_path.as_str()).unwrap();
+    client.download_object(&args).await.unwrap();
+    // match get_object {
+    //     Ok(object) => {
+    //         object.content.to_file(path).await.unwrap();
+    //     }
+    //     Err(e) => {
+    //         return HttpResponse::InternalServerError()
+    //             .body(format!("Failed to download file: {}", e));
+    //     }
+    // }
+
     if path.exists() {
         let output = wasm_actor
             .send(ExecuteFn {
-                name: payload.fn_name,
+                name: payload.fn_name.clone(),
                 params: payload.params,
             })
             .await
             .unwrap();
+        remove_file(path).await.unwrap();
         match output {
             Ok(content) => HttpResponse::Ok().body(content),
             Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
@@ -51,7 +77,7 @@ async fn execute_fn(
 }
 
 #[post("/upload")]
-async fn upload_fn(mut payload: Multipart) -> impl Responder {
+async fn upload_fn(mut payload: Multipart, client: web::Data<Client>) -> impl Responder {
     // Process multipart form data
     dbg!("Upload being called");
     let mut fn_name = String::new();
@@ -87,8 +113,8 @@ async fn upload_fn(mut payload: Multipart) -> impl Responder {
         return HttpResponse::BadRequest().body("Missing function name or empty WASM file");
     }
 
-    // Save the file
-    let path = Path::new("./src/savedWasmFunctions").join(&fn_name);
+    // Save the file temporarily
+    let path = Path::new("./src/cache").join(&fn_name);
 
     // Create directory if it doesn't exist
     if let Some(parent) = path.parent() {
@@ -100,10 +126,32 @@ async fn upload_fn(mut payload: Multipart) -> impl Responder {
 
     // Write the file
     match std::fs::write(&path, &wasm_data) {
-        Ok(_) => HttpResponse::Ok().body(format!("Function '{}' uploaded successfully", fn_name)),
+        Ok(_) => {
+            // Upload the file to MinIO
+            let bucket_name = "neelabucket";
+            let object_name = &fn_name;
+            // let content = ObjectContent::from(path.clone());
+
+            let meta = std::fs::metadata(&path).unwrap();
+            let object_size = Some(meta.len() as usize);
+            let mut file = File::open(&path).unwrap();
+            let mut args =
+                PutObjectArgs::new(bucket_name, object_name, &mut file, object_size, None).unwrap();
+
+            match client.put_object(&mut args).await {
+                Ok(_) => {
+                    // Delete the temporary file
+                    std::fs::remove_file(&path).unwrap();
+                    HttpResponse::Ok().body(format!("Function '{}' uploaded successfully", fn_name))
+                }
+                Err(e) => HttpResponse::InternalServerError()
+                    .body(format!("Failed to upload file to MinIO: {}", e)),
+            }
+        }
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed to write file: {}", e)),
     }
 }
+
 
 #[get("/metrics")]
 async fn get_metrics() -> impl Responder {

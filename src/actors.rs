@@ -1,4 +1,4 @@
-use crate::wasmFunction::run_wasm_function;
+use crate::wasm_function::run_wasm_function;
 use actix::prelude::*;
 use futures::{future::OkInto, FutureExt};
 use std::{io, pin::pin};
@@ -24,16 +24,5 @@ impl Handler<ExecuteFn> for WasmEngineActor {
         println!("Execution command received for fn {}", msg.name);
 
         Ok(run_wasm_function(msg.name, msg.params))
-
-        // let fut = async { run_wasm_function(msg.name).await };
-
-        // Use actix::fut::wrap_future to handle the future within the actor's context
-        // let res = actix::fut::wrap_future(fut);
-        // let fut = async move { run_wasm_function(msg.name).await };
-
-        // Use Box::pin to handle the future within the actor's context
-        // Box::pin(fut)
-        // let p = pin!(fut);
-        // Ok(p.now_or_never().unwrap())
     }
 }

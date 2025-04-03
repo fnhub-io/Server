@@ -1,3 +1,3 @@
 mod actors;
 mod routes;
-mod wasmFunction;
+mod wasm_function;

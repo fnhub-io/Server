@@ -109,7 +109,7 @@ fn estimate_memory_usage(fn_name: &str) -> io::Result<u64> {
 fn run_wasm_in_separate_process(addr: &str, params: &[String]) -> io::Result<String> {
     // Create a simple command-line utility that runs the WASM file
     // This runs in a separate process, avoiding the runtime conflict
-    let path = format!("./src/savedWasmFunctions/{}", addr);
+    let path = format!("./src/cache/{}", addr);
     println!("Running WASM function at path: {}", path);
 
     // Check if the file exists
@@ -159,3 +159,62 @@ fn run_wasm_in_separate_process(addr: &str, params: &[String]) -> io::Result<Str
         }
     }
 }
+
+// Keep this as a backup or for non-async contexts
+// #[allow(dead_code)]
+// pub async fn run_wasm_function_direct(addr: String) -> Result<String, Box<dyn std::error::Error>> {
+//     let mut config = Config::new();
+//     config.async_support(true);
+//     let engine = Engine::new(&config)?;
+
+//     let module = Module::from_file(&engine, format!("./src/cache/{}", addr))?;
+//     let mut linker: Linker<WasiP1Ctx> = Linker::new(&engine);
+//     preview1::add_to_linker_async(&mut linker, |t| t)?;
+//     let stdout_pipe = MemoryOutputPipe::new(100000);
+
+//     let wasi_ctx = WasiCtxBuilder::new()
+//         .stdout(stdout_pipe.clone())
+//         .stderr(wasmtime_wasi::stderr())
+//         .inherit_env()
+//         .build_p1();
+
+//     let mut store = Store::new(&engine, wasi_ctx);
+//     // let res = store.data_mut();
+//     // let pre = linker.instantiate_pre(&module)?;
+//     let pre = linker.instantiate(&mut store, &module).unwrap();
+
+//     // let instance = pre.instantiate(&mut store)?;
+//     let instance = pre;
+//     let func = instance.get_typed_func::<(), ()>(&mut store, "_start")?;
+//     func.call_async(&mut store, ()).await?;
+//     let stdout = stdout_pipe.contents();
+//     let res = str::from_utf8(&(stdout))?;
+//     Ok(res.to_string())
+// }
+
+// pub fn run_wasm_fn(addr: String) -> Result<String, Box<dyn std::error::Error>> {
+//     let mut config = Config::default();
+//     let engine = Engine::new(&config)?;
+
+//     let module = Module::from_file(&engine, format!("./src/cache/{}", addr))?;
+//     let mut linker: Linker<WasiP1Ctx> = Linker::new(&engine);
+//     preview1::add_to_linker_sync(&mut linker, |t| t)?;
+//     let stdout_pipe = MemoryOutputPipe::new(100000);
+
+//     let wasi_ctx = WasiCtxBuilder::new()
+//         .stdout(stdout_pipe.clone())
+//         .stderr(wasmtime_wasi::stderr())
+//         .inherit_env()
+//         .build_p1();
+
+//     let mut store = Store::new(&engine, wasi_ctx);
+//     // let res = store.data_mut();
+//     let pre = linker.instantiate_pre(&module)?;
+
+//     let instance = pre.instantiate(&mut store)?;
+//     let func = instance.get_typed_func::<(), ()>(&mut store, "_start")?;
+//     func.call(&mut store, ())?;
+//     let stdout = stdout_pipe.contents();
+//     let res = str::from_utf8(&(stdout))?;
+//     Ok(res.to_string())
+// }
