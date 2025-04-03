@@ -11,8 +11,6 @@ use minio::s3::args::{BucketExistsArgs, MakeBucketArgs};
 use minio::s3::client::ClientBuilder;
 use minio::s3::creds::StaticProvider;
 use minio::s3::http::BaseUrl;
-use routes::{execute_fn, test, upload_fn};
-use actix_web::{web, App, HttpServer, middleware};
 use actix::Actor;
 
 use routes::{execute_fn, test, upload_fn, get_metrics, get_function_metrics};
