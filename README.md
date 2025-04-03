@@ -1,4 +1,8 @@
-To set up and run the backend, follow these steps:
+# WebAssembly Serverless Execution Platform
+
+This project implements a serverless execution platform for WebAssembly (WASM) functions with execution metrics tracking.
+
+## Setup Instructions
 
 1. **Install the WebAssembly (WASM) compiler:**
 
@@ -14,7 +18,7 @@ To set up and run the backend, follow these steps:
 
 3. **Add your function:**
 
-   Place the function you want to execute into the `savedWasmFunction` folder.
+   Place the function you want to execute into the `src/savedWasmFunctions` folder.
 
 4. **Build and start the server:**
 
@@ -24,29 +28,73 @@ To set up and run the backend, follow these steps:
 
    After running this command, visit [http://127.0.0.1:8080/](http://127.0.0.1:8080/) to verify that the server is working.
 
-5. **Test serverless execution:**
+## Using the API
 
-   A sample WebAssembly module (`sample.wasm`) is available in the `savedWasmFunction` folder. You can test it by running:
+### Execute Functions
 
-   ```sh
-   curl -X POST "http://localhost:8080/execute" -H "Content-Type: text/plain" -d "sample.wasm"
-   ```
+Execute a WASM function with optional parameters:
 
-   ```sh
-   curl -X POST http://localhost:8080/execute \
-        -H "Content-Type: application/json" \
-        -d '{
-              "fn_name": "add.wasm",
-              "params": ["1", "2"]
-            }'
-   ```
+```sh
+curl -X POST http://localhost:8080/execute \
+     -H "Content-Type: application/json" \
+     -d '{
+           "fn_name": "add.wasm",
+           "params": ["5", "7"]
+         }'
+```
 
-6. **upload fn:**
+### Upload Functions
 
-   A sample WebAssembly module (`sample.wasm`) is available in the `savedWasmFunction` folder. You can test it by running:
+Upload a new WASM function to the server:
 
-   ```sh
-   curl -X POST http://localhost:8080/upload   -H "Content-Type: multipart/form-data"   -F "fn_name=sample2.wasm"   -F "wasm_file=@/home/arjun/Desktop/mini-project/backend/server/src/savedWasmFunctions/sample.wasm"
-   ```
+```sh
+curl -X POST http://localhost:8080/upload \
+     -H "Content-Type: multipart/form-data" \
+     -F "fn_name=sample2.wasm" \
+     -F "wasm_file=@/path/to/your/wasm/file.wasm"
+```
+
+### Retrieve Execution Metrics
+
+The platform automatically tracks execution metrics for all WASM functions, including execution time, memory usage, and execution count.
+
+#### Get metrics for all functions:
+
+```sh
+curl http://localhost:8080/metrics
+```
+
+#### Get metrics for a specific function:
+
+```sh
+curl http://localhost:8080/metrics/add.wasm
+```
+
+## Metrics Storage
+
+Function metrics are stored in a JSON file (`function_metrics.json`) at the root of the project with the following structure:
+
+```json
+{
+  "function_name.wasm": {
+    "name": "function_name.wasm",
+    "memory_used_bytes": 123456,
+    "total_execution_time_ms": 42,
+    "execution_count": 3
+  }
+}
+```
+
+## Example Functions
+
+The project includes sample WASM functions in the `src/savedWasmFunctions` directory that you can use for testing.
+
+### Example: Sample Function
+
+```sh
+curl -X POST http://localhost:8080/execute \
+     -H "Content-Type: application/json" \
+     -d '{"fn_name": "sample.wasm", "params": []}'
+```
 
 Thank you!

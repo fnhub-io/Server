@@ -2815,6 +2815,7 @@ dependencies = [
  "futures",
  "minio",
  "serde",
+ "serde_json",
  "tokio",
  "wasmtime",
  "wasmtime-wasi",

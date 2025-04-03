@@ -12,6 +12,10 @@ use minio::s3::client::ClientBuilder;
 use minio::s3::creds::StaticProvider;
 use minio::s3::http::BaseUrl;
 use routes::{execute_fn, test, upload_fn};
+use actix_web::{web, App, HttpServer, middleware};
+use actix::Actor;
+
+use routes::{execute_fn, test, upload_fn, get_metrics, get_function_metrics};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -50,6 +54,8 @@ async fn main() -> std::io::Result<()> {
             .service(test)
             .service(execute_fn)
             .service(upload_fn)
+            .service(get_metrics)
+            .service(get_function_metrics)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
