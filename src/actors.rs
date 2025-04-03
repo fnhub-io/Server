@@ -1,4 +1,4 @@
-use crate::wasmFunction::run_wasm_function;
+use crate::wasm_function::run_wasm_function;
 use actix::prelude::*;
 use futures::{future::OkInto, FutureExt};
 use std::{io, pin::pin};

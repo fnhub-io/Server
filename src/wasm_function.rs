@@ -29,7 +29,7 @@ pub fn run_wasm_function(addr: String, params: Vec<String>) -> String {
 fn run_wasm_in_separate_process(addr: &str, params: &[String]) -> io::Result<String> {
     // Create a simple command-line utility that runs the WASM file
     // This runs in a separate process, avoiding the runtime conflict
-    let path = format!("./src/savedWasmFunctions/{}", addr);
+    let path = format!("./src/cache/{}", addr);
     println!("Running WASM function at path: {}", path);
 
     let mut command = Command::new("wasmtime");
@@ -76,7 +76,7 @@ fn run_wasm_in_separate_process(addr: &str, params: &[String]) -> io::Result<Str
 //     config.async_support(true);
 //     let engine = Engine::new(&config)?;
 
-//     let module = Module::from_file(&engine, format!("./src/savedWasmFunctions/{}", addr))?;
+//     let module = Module::from_file(&engine, format!("./src/cache/{}", addr))?;
 //     let mut linker: Linker<WasiP1Ctx> = Linker::new(&engine);
 //     preview1::add_to_linker_async(&mut linker, |t| t)?;
 //     let stdout_pipe = MemoryOutputPipe::new(100000);
@@ -105,7 +105,7 @@ fn run_wasm_in_separate_process(addr: &str, params: &[String]) -> io::Result<Str
 //     let mut config = Config::default();
 //     let engine = Engine::new(&config)?;
 
-//     let module = Module::from_file(&engine, format!("./src/savedWasmFunctions/{}", addr))?;
+//     let module = Module::from_file(&engine, format!("./src/cache/{}", addr))?;
 //     let mut linker: Linker<WasiP1Ctx> = Linker::new(&engine);
 //     preview1::add_to_linker_sync(&mut linker, |t| t)?;
 //     let stdout_pipe = MemoryOutputPipe::new(100000);

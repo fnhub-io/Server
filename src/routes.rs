@@ -5,9 +5,10 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::{StreamExt, TryStreamExt};
 
 use minio::s3::{
-    args::{DownloadObjectArgs, GetObjectArgs, PutObjectArgs},
+    args::{DownloadObjectArgs, PutObjectArgs},
     client::Client,
 };
+use tokio::fs::remove_file;
 
 use std::{fs::File, path::Path};
 
@@ -32,9 +33,9 @@ async fn execute_fn(
     wasm_actor: web::Data<Addr<WasmEngineActor>>,
     client: web::Data<Client>,
 ) -> impl Responder {
-    let bucket_name = "Neelabucket";
+    let bucket_name = "neelabucket";
     let object_name = &payload.fn_name;
-    let download_path = format!("./src/savedWasmFunctions/{}", payload.fn_name);
+    let download_path = format!("./src/cache/{}", payload.fn_name);
     let path = Path::new(&download_path);
 
     // Download the file from MinIO
@@ -61,6 +62,7 @@ async fn execute_fn(
             })
             .await
             .unwrap();
+        remove_file(path).await.unwrap();
         match output {
             Ok(content) => HttpResponse::Ok().body(content),
             Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
@@ -108,7 +110,7 @@ async fn upload_fn(mut payload: Multipart, client: web::Data<Client>) -> impl Re
     }
 
     // Save the file temporarily
-    let path = Path::new("./src/savedWasmFunctions").join(&fn_name);
+    let path = Path::new("./src/cache").join(&fn_name);
 
     // Create directory if it doesn't exist
     if let Some(parent) = path.parent() {
@@ -122,7 +124,7 @@ async fn upload_fn(mut payload: Multipart, client: web::Data<Client>) -> impl Re
     match std::fs::write(&path, &wasm_data) {
         Ok(_) => {
             // Upload the file to MinIO
-            let bucket_name = "Neelabucket";
+            let bucket_name = "neelabucket";
             let object_name = &fn_name;
             // let content = ObjectContent::from(path.clone());
 
@@ -173,7 +175,7 @@ async fn upload_fn(mut payload: Multipart, client: web::Data<Client>) -> impl Re
 //     web::Json(payload): web::Json<ExecutePayload>,
 //     wasm_actor: web::Data<Addr<WasmEngineActor>>,
 // ) -> impl Responder {
-//     let addr = format!("./src/savedWasmFunctions/{}", payload.fn_name);
+//     let addr = format!("./src/cache/{}", payload.fn_name);
 //     let path = Path::new(&addr);
 
 //     dbg!(payload.fn_name.clone(), path);
@@ -233,7 +235,7 @@ async fn upload_fn(mut payload: Multipart, client: web::Data<Client>) -> impl Re
 //     }
 
 //     // Save the file
-//     let path = Path::new("./src/savedWasmFunctions").join(&fn_name);
+//     let path = Path::new("./src/cache").join(&fn_name);
 
 //     // Create directory if it doesn't exist
 //     if let Some(parent) = path.parent() {

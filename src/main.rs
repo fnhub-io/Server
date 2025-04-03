@@ -1,8 +1,7 @@
 mod actors;
 mod routes;
-mod wasmFunction;
+mod wasm_function;
 
-use actix::prelude::*;
 use actix::prelude::*;
 use actix_cors::Cors;
 use actix_web::{get, post, HttpResponse, Responder};
@@ -12,7 +11,6 @@ use minio::s3::args::{BucketExistsArgs, MakeBucketArgs};
 use minio::s3::client::ClientBuilder;
 use minio::s3::creds::StaticProvider;
 use minio::s3::http::BaseUrl;
-use minio::s3::response::MakeBucketResponse;
 use routes::{execute_fn, test, upload_fn};
 
 #[actix_web::main]
@@ -22,7 +20,7 @@ async fn main() -> std::io::Result<()> {
 
     //minio
     let db_server = "http://localhost:9000".parse::<BaseUrl>().unwrap();
-    dbg!("Trying to connect to MinIO at: `{:?}`", &db_server);
+    dbg!("Connecting to MinIO at: `{:?}`", &db_server);
 
     let static_provider = StaticProvider::new("minioadmin", "minioadmin", None);
 
@@ -36,7 +34,6 @@ async fn main() -> std::io::Result<()> {
     let args = BucketExistsArgs::new(bucket_name);
 
     let resp = client.bucket_exists(&args.unwrap()).await.unwrap();
-
     if !resp {
         let mkbucket = MakeBucketArgs::new(bucket_name).unwrap();
         client.make_bucket(&mkbucket).await.unwrap();
@@ -47,6 +44,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(wasm_actor.clone()))
+            .app_data(client_data.clone())
             .wrap(Cors::permissive())
             .wrap(middleware::Logger::default())
             .service(test)
